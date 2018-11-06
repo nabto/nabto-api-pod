@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
   s.name         = 'NabtoAPI'
   s.platform     = :ios, "11.0"
-  s.version      = "0.0.1"
+  s.version      = "0.0.3"
   s.summary      = "Nabto Client API (core library files)"
   s.description  = <<-DESC
 This pod installs the iOS version of the cross-platform ANSI C based Nabto Client API library. You should probably use the Nabto Client pod instead as it provides a higher level Objective C wrapper. Any suggestions on how to cleanly combine source files (the Objective C wrapper) with an external dependency (not in github - the large Nabto library files are deployed on CDN) are appreciated :-).
@@ -20,6 +20,7 @@ DESC
   s.public_header_files = "**/*.h"
   s.ios.libraries = "c++", "stdc++"
   s.vendored_libraries = "nabto-libs-ios-static/ios/lib/libnabto_client_api_static.a", "nabto-libs-ios-static/ios/lib/libnabto_static_external.a"
+  s.static_framework = true
   
 end
 
