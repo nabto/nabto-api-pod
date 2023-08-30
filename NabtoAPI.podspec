@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
   s.name         = 'NabtoAPI'
-  s.platform     = :ios, "11.0"
-  s.version      = "1.1.2"
+  s.platform     = :ios, "10.0"
+  s.version      = "4.7.0"
   s.summary      = "Nabto Client API (core library files)"
   s.description  = <<-DESC
 This pod installs the iOS version of the cross-platform ANSI C based Nabto Client API library. You should probably use the Nabto Client pod instead as it provides a higher level Objective C wrapper. Any suggestions on how to cleanly combine source files (the Objective C wrapper) with an external dependency (not in github - the large Nabto library files are deployed on CDN) are appreciated :-).
@@ -14,13 +14,16 @@ DESC
   s.license      =   { :type => "Commercial", :file => "nabto-libs-ios-static/ios/LICENSE.txt" }
   s.author       = { "Nabto" => "apps@nabto.com" }
 
-  s.source           = { :http => "https://downloads.nabto.com/assets/nabto-ios-client-static/4.5.3/nabto-libs-ios-static.zip" }
+  s.source           = { :http => "https://downloads.nabto.com/assets/nabto-ios-client-static/4.7.0/nabto-libs-ios-static.zip" }
 
   s.source_files = "nabto-libs-ios-static/ios/lib", "nabto-libs-ios-static/ios/include/*.h"
   s.public_header_files = "**/*.h"
   s.ios.libraries = "c++", "stdc++"
   s.vendored_libraries = "nabto-libs-ios-static/ios/lib/libnabto_client_api_static.a", "nabto-libs-ios-static/ios/lib/libnabto_static_external.a"
   s.static_framework = true
-  
+
+  # xcode 12 workaround until we add support for arm64 based simulators
+  s.user_target_xcconfig = { 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'arm64' }
+  s.pod_target_xcconfig = { 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'arm64' }
 end
 
