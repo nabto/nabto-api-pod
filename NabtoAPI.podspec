@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name         = 'NabtoAPI'
-  s.platform     = :ios, "11.0"
+  s.platform     = :ios, "14.5"
   s.version      = "4.7.2-rc1"
   s.summary      = "Nabto Client API (core library files)"
   s.description  = <<-DESC
@@ -19,5 +19,5 @@ DESC
   s.platform = :ios
   s.ios.preserve_paths = "#{s.name}.xcframework"
   s.ios.libraries = 'c++', 'stdc++'
-  s.ios.deployment_target = '11'
+  s.ios.deployment_target = '14.5'
 end
