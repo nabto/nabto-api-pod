@@ -4,32 +4,30 @@ set -e
 
 SCRIPT_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-FRAMEWORK_NAME=nabto_client_api.xcframework
-ARCHIVE_BASENAME=nabto_client_api
+ARCHIVE_BASENAME=NabtoAPI
+TARGET_FRAMEWORK_NAME=${ARCHIVE_BASENAME}.xcframework
+SLICE_FRAMEWORK_NAME=${ARCHIVE_BASENAME}.framework
+JENKINS_FRAMEWORK_NAME=nabto_client_api.framework
+JENKINS_ARCHIVE_BASENAME=nabto_client_api
 
 ROOT=nabto
-LICENSE=
 IOS_PHONE_ARM64_DIR=iphoneos-arm64
 IOS_SIM_X64_DIR=iphonesimulator-x86_64
 IOS_SIM_ARM64_DIR=iphonesimulator-arm64
 IOS_SIM_LIPO_DIR=iphonesimulator-lipo
 
-LIBRARY_FILENAME=nabto_client_api
-
 JENKINS_HEADER_DIR=$IOS_PHONE_ARM64_DIR/include
 JENKINS_HEADER_FILE=$JENKINS_HEADER_DIR/nabto_client_api.h
 
-FRAMEWORK_PATH=${ARCHIVE_BASENAME}.framework
-
-JENKINS_FRAMEWORK_PATH=framework/$FRAMEWORK_PATH
+JENKINS_FRAMEWORK_PATH=framework/$JENKINS_FRAMEWORK_NAME
 JENKINS_IOS_PHONE_ARM64_FRAMEWORK=${IOS_PHONE_ARM64_DIR}/${JENKINS_FRAMEWORK_PATH}
 JENKINS_IOS_SIM_ARM64_FRAMEWORK=${IOS_SIM_ARM64_DIR}/${JENKINS_FRAMEWORK_PATH}
 JENKINS_IOS_SIM_X64_FRAMEWORK=${IOS_SIM_X64_DIR}/${JENKINS_FRAMEWORK_PATH}
 
-IOS_PHONE_ARM64_FRAMEWORK=${IOS_PHONE_ARM64_DIR}/${FRAMEWORK_PATH}
-IOS_SIM_ARM64_FRAMEWORK=${IOS_SIM_ARM64_DIR}/${FRAMEWORK_PATH}
-IOS_SIM_X64_FRAMEWORK=${IOS_SIM_X64_DIR}/${FRAMEWORK_PATH}
-IOS_SIM_LIPO_FRAMEWORK=${IOS_SIM_LIPO_DIR}/${FRAMEWORK_PATH}
+IOS_PHONE_ARM64_FRAMEWORK=${IOS_PHONE_ARM64_DIR}/${SLICE_FRAMEWORK_NAME}
+IOS_SIM_ARM64_FRAMEWORK=${IOS_SIM_ARM64_DIR}/${SLICE_FRAMEWORK_NAME}
+IOS_SIM_X64_FRAMEWORK=${IOS_SIM_X64_DIR}/${SLICE_FRAMEWORK_NAME}
+IOS_SIM_LIPO_FRAMEWORK=${IOS_SIM_LIPO_DIR}/${SLICE_FRAMEWORK_NAME}
 
 function usage {
     echo "$0 <dir with artifacts> <output dir>"
@@ -60,20 +58,20 @@ function usage {
     echo "  ..."
     echo ""
     echo "The output of the script is an XCFramework bundle with the following structure: "
-    echo "     nabto_client_api.xcframework"
+    echo "     NabtoAPI.xcframework"
     echo "      ├── LICENSE.txt"
     echo "      ├── iphoneos-arm64"
-    echo "         nabto_client_api.framework/"
+    echo "         NabtoAPI.framework/"
     echo "         ├── Headers"
     echo "         │   └── nabto_client_api.h"
     echo "         ├── Info.plist"
-    echo "         └── nabto_client_api"
+    echo "         └── NabtoAPI"
     echo "      ├── iphonesimulator-lipo"
-    echo "         nabto_client_api.framework/"
+    echo "         NabtoAPI.framework/"
     echo "         ├── Headers"
     echo "         │   └── nabto_client_api.h"
     echo "         ├── Info.plist"
-    echo "         └── nabto_client_api"
+    echo "         └── NabtoAPI"
     echo ""
 }
 
@@ -96,15 +94,15 @@ function restructureFrameworks {
     #
     # tmp_restructured/
     # ├── iphoneos-arm64
-    # │   │   └── nabto_client_api.framework
+    # │   │   └── NabtoAPI.framework
     # │   │       ├── Info.plist
-    # │   │       └── nabto_client_api
+    # │   │       └── NabtoAPI
     # │           ├── Headers
     #                    └── nabto_client_api.h
     # ├── iphonesimulator-lipo
-    # │   │   └── nabto_client_api.framework
+    # │   │   └── NabtoAPI.framework
     # │   │       ├── Info.plist
-    # │   │       └── nabto_client_api
+    # │   │       └── NabtoAPI
     # │           ├── Headers
     #                   └── nabto_client_api.h
     #
@@ -114,10 +112,12 @@ function restructureFrameworks {
 #    tmp=/tmp/tmp_restructured
 #    rm -rf $tmp
 
-    # iphone
+    # iphone - rename nabto_client_api to NabtoAPI to match previous version (otherwise #include "NabtoAPI/nabto_client_api.h" would break)
     iphoneTargetDir=$tmp/$IOS_PHONE_ARM64_DIR
     mkdir -p $iphoneTargetDir
-    cp -R $inputDir/$JENKINS_IOS_PHONE_ARM64_FRAMEWORK $iphoneTargetDir
+    cp -R $inputDir/$JENKINS_IOS_PHONE_ARM64_FRAMEWORK $iphoneTargetDir/$SLICE_FRAMEWORK_NAME
+    mv $iphoneTargetDir/$SLICE_FRAMEWORK_NAME/$JENKINS_ARCHIVE_BASENAME $iphoneTargetDir/$SLICE_FRAMEWORK_NAME/$ARCHIVE_BASENAME
+    patchInfoPlist $iphoneTargetDir/$SLICE_FRAMEWORK_NAME
 
     iphoneHeadersDir=$tmp/$IOS_PHONE_ARM64_FRAMEWORK/Headers
     mkdir $iphoneHeadersDir
@@ -127,12 +127,13 @@ function restructureFrameworks {
     simTargetDir=$tmp/$IOS_SIM_LIPO_FRAMEWORK
     mkdir -p $simTargetDir
     lipo -create \
-         $inputDir/$JENKINS_IOS_SIM_ARM64_FRAMEWORK/$LIBRARY_FILENAME \
-         $inputDir/$JENKINS_IOS_SIM_X64_FRAMEWORK/$LIBRARY_FILENAME \
-         -output $simTargetDir/$LIBRARY_FILENAME
+         $inputDir/$JENKINS_IOS_SIM_ARM64_FRAMEWORK/$JENKINS_ARCHIVE_BASENAME \
+         $inputDir/$JENKINS_IOS_SIM_X64_FRAMEWORK/$JENKINS_ARCHIVE_BASENAME \
+         -output $simTargetDir/$ARCHIVE_BASENAME
 
     # copy Info.plist from arm64 sim slice
     cp $inputDir/$JENKINS_IOS_SIM_ARM64_FRAMEWORK/Info.plist $simTargetDir
+    patchInfoPlist $simTargetDir
 
     # copy headers from iOS
     simHeadersDir=$simTargetDir/Headers
@@ -143,10 +144,15 @@ function restructureFrameworks {
     tree $tmp
 }
 
+function patchInfoPlist() {
+    file=$1/Info.plist
+    perl -p -i -e 's/nabto_client_api/NabtoAPI/g' $file
+}
+
 function createBundle() {
     inputDir=$1
     outputDir=$2
-    rm -rf $outputDir/$FRAMEWORK_NAME
+    rm -rf $outputDir/$TARGET_FRAMEWORK_NAME
     cd $inputDir
 
     echo "Creating bundle in this tree:"
@@ -156,10 +162,10 @@ function createBundle() {
     xcodebuild -create-xcframework \
                -framework $IOS_PHONE_ARM64_FRAMEWORK  \
                -framework $IOS_SIM_LIPO_FRAMEWORK     \
-               -output $outputDir/$FRAMEWORK_NAME
-    cp $SCRIPT_DIR/LICENSE.txt $outputDir/$FRAMEWORK_NAME
+               -output $outputDir/$TARGET_FRAMEWORK_NAME
+    cp $SCRIPT_DIR/LICENSE.txt $outputDir/$TARGET_FRAMEWORK_NAME
     cd $outputDir
-    zip -r $FRAMEWORK_NAME.zip $FRAMEWORK_NAME
+    zip -r $TARGET_FRAMEWORK_NAME.zip $TARGET_FRAMEWORK_NAME
 }
 
 function main() {
