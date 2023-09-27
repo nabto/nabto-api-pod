@@ -117,6 +117,7 @@ function restructureFrameworks {
     mkdir -p $iphoneTargetDir
     cp -R $inputDir/$JENKINS_IOS_PHONE_ARM64_FRAMEWORK $iphoneTargetDir/$SLICE_FRAMEWORK_NAME
     mv $iphoneTargetDir/$SLICE_FRAMEWORK_NAME/$JENKINS_ARCHIVE_BASENAME $iphoneTargetDir/$SLICE_FRAMEWORK_NAME/$ARCHIVE_BASENAME
+    install_name_tool -id @rpath/${ARCHIVE_BASENAME}.framework/${ARCHIVE_BASENAME} $iphoneTargetDir/$SLICE_FRAMEWORK_NAME/$ARCHIVE_BASENAME
     patchInfoPlist $iphoneTargetDir/$SLICE_FRAMEWORK_NAME
 
     iphoneHeadersDir=$tmp/$IOS_PHONE_ARM64_FRAMEWORK/Headers
