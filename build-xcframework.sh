@@ -134,6 +134,7 @@ function restructureFrameworks {
 
     # copy Info.plist from arm64 sim slice
     cp $inputDir/$JENKINS_IOS_SIM_ARM64_FRAMEWORK/Info.plist $simTargetDir
+    install_name_tool -id @rpath/${ARCHIVE_BASENAME}.framework/${ARCHIVE_BASENAME} $simTargetDir/$ARCHIVE_BASENAME
     patchInfoPlist $simTargetDir
 
     # copy headers from iOS
