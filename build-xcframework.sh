@@ -5,6 +5,7 @@ set -e
 SCRIPT_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 ARCHIVE_BASENAME=NabtoAPI
+PODSPEC=${ARCHIVE_BASENAME}.podspec
 TARGET_FRAMEWORK_NAME=${ARCHIVE_BASENAME}.xcframework
 SLICE_FRAMEWORK_NAME=${ARCHIVE_BASENAME}.framework
 JENKINS_FRAMEWORK_NAME=nabto_client_api.framework
@@ -131,9 +132,6 @@ function restructureFrameworks {
          $inputDir/$JENKINS_IOS_SIM_ARM64_FRAMEWORK/$JENKINS_ARCHIVE_BASENAME \
          $inputDir/$JENKINS_IOS_SIM_X64_FRAMEWORK/$JENKINS_ARCHIVE_BASENAME \
          -output $simTargetDir/$ARCHIVE_BASENAME
-
-    # copy Info.plist from arm64 sim slice
-    cp $inputDir/$JENKINS_IOS_SIM_ARM64_FRAMEWORK/Info.plist $simTargetDir
     install_name_tool -id @rpath/${ARCHIVE_BASENAME}.framework/${ARCHIVE_BASENAME} $simTargetDir/$ARCHIVE_BASENAME
     patchInfoPlist $simTargetDir
 
@@ -148,7 +146,11 @@ function restructureFrameworks {
 
 function patchInfoPlist() {
     file=$1/Info.plist
-    perl -p -i -e 's/nabto_client_api/NabtoAPI/g' $file
+    cp $SCRIPT_DIR/Info.plist.template $file
+    cat $file
+    version=`cat $PODSPEC | grep '^\s*s.version' | awk '{print $3}' | sed 's/-.*//' | sed 's/\"//'`
+    perl -p -i -e "s/%%VERSION%%/$version/g" $file
+    cat $file
 }
 
 function createBundle() {
